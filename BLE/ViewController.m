@@ -12,14 +12,14 @@
 
 @interface ViewController ()
 @property (nonatomic,strong) CBCentralManager *CM;
-
 @property (nonatomic,strong) CBPeripheral *connectedPeripheral;
 @property NSMutableArray *connectedService;
 @property NSInteger serviceCount;
-
 @property NSMutableArray *deviceList;
 @property NSMutableArray *rssiList;
 @property NSInteger deviceIndex;
+@property BOOL isOK;
+@property NSTimer *connectTimer;
 @end
 
 @implementation ViewController
@@ -34,6 +34,7 @@
     self.connectedService = [[NSMutableArray alloc] init];;
     self.deviceIndex = -1;
     self.serviceCount = -1;
+    self.isOK = NO;
     
 }
 
@@ -44,17 +45,26 @@
 
 - (IBAction)pressStartScan:(id)sender {
     NSLog(@"pressStartScan");
-    self.deviceList = [[NSMutableArray alloc] init];
-    self.rssiList = [[NSMutableArray alloc] init];
-    // multiple discoveries of the same peripheral are coalesced into a single discovery event.
-    NSDictionary *options = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO], CBCentralManagerScanOptionAllowDuplicatesKey, nil];
     
-    [self.CM scanForPeripheralsWithServices:nil options:options];
-//    [NSTimer scheduledTimerWithTimeInterval:2.0f target:self selector:@selector(scanTimeout:) userInfo:nil repeats:NO];
+    if (self.isOK) {
+        self.deviceList = [[NSMutableArray alloc] init];
+        self.rssiList = [[NSMutableArray alloc] init];
+        
+        // specify UDID
+        //    NSArray    *uuidArray= [NSArray arrayWithObjects:[CBUUID UUIDWithString:@"180D"], nil];
+        //    [CM scanForPeripheralsWithServices:uuidArray options:options];
+        
+        NSDictionary *options = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:YES], CBCentralManagerScanOptionAllowDuplicatesKey, nil];
+        
+        [self.CM scanForPeripheralsWithServices:nil options:options];
+        //    [NSTimer scheduledTimerWithTimeInterval:2.0f target:self selector:@selector(scanTimeout:) userInfo:nil repeats:NO];
     
-    // specify UDID
-//    NSArray    *uuidArray= [NSArray arrayWithObjects:[CBUUID UUIDWithString:@"180D"], nil];
-//    [CM scanForPeripheralsWithServices:uuidArray options:options];
+    }
+    else {
+        UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:nil message:@"Please Open Bluetooth" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        [alertView show];
+    }
+
 }
 
 - (IBAction)pressStopScan:(id)sender {
@@ -63,14 +73,21 @@
 
 - (IBAction)pressConnect:(id)sender {
     
-    //  for now one time one connect
-    if (self.deviceIndex != -1) {
-        CBPeripheral *peripheral;
-        peripheral = [self.deviceList objectAtIndex:self.deviceIndex];
-        [self.CM stopScan];
-        self.connectedPeripheral = peripheral;
-        [self.CM connectPeripheral:peripheral options:nil];
-        NSLog(@"connecting %@ ...",peripheral.name);
+    if (self.isOK) {
+        //  for now one time one connect
+        if (self.deviceIndex != -1) {
+            CBPeripheral *peripheral;
+            peripheral = [self.deviceList objectAtIndex:self.deviceIndex];
+            [self.CM stopScan];
+            self.connectedPeripheral = peripheral;
+            [self.CM connectPeripheral:peripheral options:nil];
+            self.labelState.text = [NSString stringWithFormat:@"connecting %@",peripheral.name];
+            self.connectTimer = [NSTimer scheduledTimerWithTimeInterval:10.0f target:self selector:@selector(connectTimeout:) userInfo:nil repeats:NO];
+        }
+    }
+    else {
+        UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:nil message:@"Please Open Bluetooth" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        [alertView show];
     }
 }
 
@@ -92,9 +109,25 @@
     [self.tableView reloadData];
 }
 
+- (void) connectTimeout:(NSTimer*)timer
+{
+    UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:nil message:@"connect time out !" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+    [alertView show];
+    
+    if (self.CM!=NULL){
+        if (self.connectedPeripheral!=NULL){
+            [self.CM cancelPeripheralConnection:self.connectedPeripheral];
+        }
+    }
+
+    NSLog(@"connectTimeout");
+    
+}
+
 #pragma mark BlueTooth delegate
 -(void)centralManagerDidUpdateState:(CBCentralManager*)cManager
 {
+    self.isOK = NO;
     switch (cManager.state) {
         case CBCentralManagerStateUnknown:
             self.labelState.text = @"Unknown";
@@ -113,6 +146,7 @@
             break;
         case CBCentralManagerStatePoweredOn:
             self.labelState.text = @"PoweredOn";
+            self.isOK = YES;
             break;
         default:
             self.labelState.text = @"none";
@@ -131,46 +165,46 @@
 //        NSLog(@"RSSI: %@",RSSI);
 //        NSLog(@"adverisement:%@",advertisementData);
         
-        BOOL exist = NO;
-        
-        for (CBPeripheral *p in self.deviceList ) {
-            if ([[self GetUUID:p.UUID] isEqualToString:[self GetUUID:peripheral.UUID]]) {
-                exist = YES;
-            }
-        }
-        
-        if (exist == NO) {
+        if ( ![self.deviceList containsObject:peripheral] ) {
             [self.deviceList addObject:peripheral];
             [self.rssiList addObject:RSSI];
             [self.tableView reloadData];
         }
+        else {
+            NSInteger index = [self.deviceList indexOfObject:peripheral];
+            [self.rssiList replaceObjectAtIndex:index withObject:RSSI];
+            [self.tableView reloadData];
+        }
+
     }
 }
 
 -(void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral
 {
     NSLog(@"didConnectPeripheral [%@]",peripheral.name);
+    [self.connectTimer invalidate];
+    self.labelState.text = @"Connect";
     peripheral.delegate = self;
     [peripheral discoverServices:nil];
 }
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error {
     NSLog(@"didDisconnectPeripheral [%@]",peripheral.name);
-    
+    self.labelState.text = @"Disconnect";
     UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:nil message:@"didDisconnectPeripheral" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
     [alertView show];
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error {
-    NSLog(@"## didDiscoverServices");
+    NSLog(@"didDiscoverServices");
     if (!error) {
         
 //        NSLog(@"name:%@",peripheral.name);
 //        NSLog(@"UUID:%@",peripheral.UUID);
 //        NSLog(@"Services:%ld",[peripheral.services count]);
+        
         self.serviceCount = [peripheral.services count];
         for (CBService *p in peripheral.services){
-            NSLog(@"Service found with UUID: %@\n", p.UUID);
             [peripheral discoverCharacteristics:nil forService:p];
         }
     }
@@ -189,9 +223,18 @@
         [self.connectedService addObject:service];
         
         for(CBCharacteristic *c in service.characteristics){
-            NSLog(@"char UUID:%@ ",c.UUID);
-            //  CBService *s = [peripheral.services objectAtIndex:(peripheral.services.count - 1)];
+            NSLog(@"Characteristic UUID:%@ ",c.UUID);
             if(service.UUID == NULL || s.UUID == NULL) return; // zach ios6 added
+            
+            //Register notification
+//            if ([service.UUID isEqual:[CBUUID UUIDWithString:@"180D"]]) {
+//                if ([c.UUID isEqual:[CBUUID UUIDWithString:@"2A37"]]) {
+//                    [peripheral setNotifyValue:YES forCharacteristic:c];
+//                    NSLog(@"registered notification 2A37");
+//                }
+//            }
+            
+            [peripheral readValueForCharacteristic:c];
         }
     }
     else {
@@ -203,6 +246,50 @@
     if (self.serviceCount == 0) {
         [self performSegueWithIdentifier:@"ShowServices" sender:nil];
     }
+    
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error {
+//    NSLog(@"didUpdateValueForCharacteristic");
+    
+    if (!error) {
+        NSString *msg = @"";
+        if (  characteristic.properties & (CBCharacteristicPropertyBroadcast) )
+            msg = [msg stringByAppendingString:@"Broadcast "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyRead) )
+            msg = [msg stringByAppendingString:@"Read "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyWriteWithoutResponse) )
+            msg = [msg stringByAppendingString:@"WriteWithoutResponse "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyWrite) )
+            msg = [msg stringByAppendingString:@"Write "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyNotify) )
+            msg = [msg stringByAppendingString:@"Notify "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyIndicate) )
+            msg = [msg stringByAppendingString:@"Indicate "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyAuthenticatedSignedWrites) )
+            msg = [msg stringByAppendingString:@"AuthenticatedSignedWrites "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyExtendedProperties) )
+            msg = [msg stringByAppendingString:@"ExtendedProperties "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyNotifyEncryptionRequired) )
+            msg = [msg stringByAppendingString:@"NotifyEncryptionRequired "];
+        
+        if (  characteristic.properties & (CBCharacteristicPropertyIndicateEncryptionRequired) )
+            msg = [msg stringByAppendingString:@"IndicateEncryptionRequired "];
+        
+        NSLog(@"UUID[%@](%@) : %@ ",characteristic.UUID ,msg, characteristic.value);
+    
+    }
+}
+
+- (void)peripheralDidUpdateRSSI:(CBPeripheral *)peripheral error:(NSError *)error {
     
 }
 
@@ -218,7 +305,8 @@
     CBPeripheral *p = [self.deviceList objectAtIndex:indexPath.row ];
     cell.labelName.text = [ NSString stringWithFormat:@"%@", p.name] ;
     cell.labelRSSI.text = [ NSString stringWithFormat:@"%@", [self.rssiList objectAtIndex:indexPath.row ] ] ;
-    cell.labelUUID.text = [self GetUUID:p.UUID];
+//    cell.labelUUID.text = [self GetUUID:p.UUID];
+    cell.labelUUID.text = p.identifier.UUIDString;
     return cell;
 }
 
@@ -242,9 +330,4 @@
     }
 }
 
-- (NSString *)GetUUID:(CFUUIDRef ) theUUID {
-    //    CFUUIDRef theUUID = CFUUIDCreate(NULL);
-    CFStringRef string = CFUUIDCreateString(NULL, theUUID);
-    return (__bridge_transfer NSString *)string;
-}
 @end

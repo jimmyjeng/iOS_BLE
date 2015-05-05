@@ -20,8 +20,7 @@
     [super viewDidLoad];
 
     self.labelName.text = self.periperal.name;
-//    self.labelUUID.text = [NSString stringWithFormat:@"%@",self.periperal.UUID ];
-    self.labelUUID.text = [self GetUUID : self.periperal.UUID];
+    self.labelUUID.text = self.periperal.identifier.UUIDString;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -58,12 +57,6 @@
         destViewController.uuid = s.UUID.UUIDString;
         destViewController.characteristics = s.characteristics ;
     }
-}
-
-- (NSString *)GetUUID:(CFUUIDRef ) theUUID {
-//    CFUUIDRef theUUID = CFUUIDCreate(NULL);
-    CFStringRef string = CFUUIDCreateString(NULL, theUUID);
-    return (__bridge_transfer NSString *)string;
 }
 
 @end
