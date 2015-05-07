@@ -20,6 +20,7 @@
 		BF8121531AEE190100875654 /* BLETests.m in Sources */ = {isa = PBXBuildFile; fileRef = BF8121521AEE190100875654 /* BLETests.m */; };
 		BF81215D1AEE1A2D00875654 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF81215C1AEE1A2D00875654 /* CoreBluetooth.framework */; };
 		BF8121601AEE3C5400875654 /* DeviceCell.m in Sources */ = {isa = PBXBuildFile; fileRef = BF81215F1AEE3C5400875654 /* DeviceCell.m */; };
+		BFBF20711AFA0A10002DC62A /* LogVC.m in Sources */ = {isa = PBXBuildFile; fileRef = BFBF20701AFA0A10002DC62A /* LogVC.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,8 @@
 		BF81215C1AEE1A2D00875654 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		BF81215E1AEE3C5400875654 /* DeviceCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DeviceCell.h; sourceTree = "<group>"; };
 		BF81215F1AEE3C5400875654 /* DeviceCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DeviceCell.m; sourceTree = "<group>"; };
+		BFBF206F1AFA0A10002DC62A /* LogVC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LogVC.h; sourceTree = "<group>"; };
+		BFBF20701AFA0A10002DC62A /* LogVC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LogVC.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -118,6 +121,8 @@
 				BF425A691AEF73AB002BEA45 /* CharacteristicsViewController.m */,
 				BF425A6B1AEF7B30002BEA45 /* CharacteristicCell.h */,
 				BF425A6C1AEF7B30002BEA45 /* CharacteristicCell.m */,
+				BFBF206F1AFA0A10002DC62A /* LogVC.h */,
+				BFBF20701AFA0A10002DC62A /* LogVC.m */,
 			);
 			path = BLE;
 			sourceTree = "<group>";
@@ -251,6 +256,7 @@
 				BF425A6D1AEF7B30002BEA45 /* CharacteristicCell.m in Sources */,
 				BF81213F1AEE190000875654 /* ViewController.m in Sources */,
 				BF81213C1AEE190000875654 /* AppDelegate.m in Sources */,
+				BFBF20711AFA0A10002DC62A /* LogVC.m in Sources */,
 				BF425A6A1AEF73AB002BEA45 /* CharacteristicsViewController.m in Sources */,
 				BF8121391AEE190000875654 /* main.m in Sources */,
 				BF425A641AEF58F4002BEA45 /* ServiceViewController.m in Sources */,

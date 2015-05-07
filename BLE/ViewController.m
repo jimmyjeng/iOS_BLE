@@ -9,6 +9,7 @@
 #import "ViewController.h"
 #import "ServiceViewController.h"
 #import "DeviceCell.h"
+#import "LogVC.h"
 
 @interface ViewController ()
 @property (nonatomic,strong) CBCentralManager *CM;
@@ -20,6 +21,7 @@
 @property NSInteger deviceIndex;
 @property BOOL isOK;
 @property NSTimer *connectTimer;
+@property NSMutableArray *log;
 @end
 
 @implementation ViewController
@@ -35,6 +37,7 @@
     self.deviceIndex = -1;
     self.serviceCount = -1;
     self.isOK = NO;
+    self.log = [[NSMutableArray alloc]init];
     
 }
 
@@ -44,8 +47,7 @@
 }
 
 - (IBAction)pressStartScan:(id)sender {
-    NSLog(@"pressStartScan");
-    
+    [self logChanel:@"pressStartScan"];
     if (self.isOK) {
         self.deviceList = [[NSMutableArray alloc] init];
         self.rssiList = [[NSMutableArray alloc] init];
@@ -81,8 +83,10 @@
             [self.CM stopScan];
             self.connectedPeripheral = peripheral;
             [self.CM connectPeripheral:peripheral options:nil];
-            self.labelState.text = [NSString stringWithFormat:@"connecting %@",peripheral.name];
-            self.connectTimer = [NSTimer scheduledTimerWithTimeInterval:10.0f target:self selector:@selector(connectTimeout:) userInfo:nil repeats:NO];
+            NSString* msg = [NSString stringWithFormat:@"connecting %@",peripheral.name];
+            self.labelState.text = msg;
+            self.connectTimer = [NSTimer scheduledTimerWithTimeInterval:20.0f target:self selector:@selector(connectTimeout:) userInfo:nil repeats:NO];
+            [self logChanel:msg];
         }
     }
     else {
@@ -102,10 +106,9 @@
     if (self.CM!=NULL){
         [self.CM stopScan];
     }else{
-        NSLog(@"CM is Null!");
+        [self logChanel:@"CM is Null"];
     }
-    NSLog(@"scanTimeout");
-    
+    [self logChanel:@"scanTimeout"];
     [self.tableView reloadData];
 }
 
@@ -120,8 +123,7 @@
         }
     }
 
-    NSLog(@"connectTimeout");
-    
+    [self logChanel:@"connectTimeout"];
 }
 
 #pragma mark BlueTooth delegate
@@ -143,9 +145,11 @@
             break;
         case CBCentralManagerStatePoweredOff:
             self.labelState.text = @"PoweredOff";
+            [self logChanel:@"Power Off"];
             break;
         case CBCentralManagerStatePoweredOn:
             self.labelState.text = @"PoweredOn";
+            [self logChanel:@"Power On"];
             self.isOK = YES;
             break;
         default:
@@ -181,7 +185,7 @@
 
 -(void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral
 {
-    NSLog(@"didConnectPeripheral [%@]",peripheral.name);
+    [self logChanel:[NSString stringWithFormat:@"didConnectPeripheral [%@]",peripheral.name ]];
     [self.connectTimer invalidate];
     self.labelState.text = @"Connect";
     peripheral.delegate = self;
@@ -189,19 +193,18 @@
 }
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error {
-    NSLog(@"didDisconnectPeripheral [%@]",peripheral.name);
+    [self logChanel:[NSString stringWithFormat:@"didDisconnectPeripheral [%@]",peripheral.name ]];
     self.labelState.text = @"Disconnect";
     UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:nil message:@"didDisconnectPeripheral" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
     [alertView show];
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error {
-    NSLog(@"didDiscoverServices");
+    [self logChanel:@"didDiscoverServices"];
     if (!error) {
         
-//        NSLog(@"name:%@",peripheral.name);
-//        NSLog(@"UUID:%@",peripheral.UUID);
-//        NSLog(@"Services:%ld",[peripheral.services count]);
+        [self logChanel:[NSString stringWithFormat:@"name:%@",peripheral.name ]];
+        [self logChanel:[NSString stringWithFormat:@"UUID:%@",peripheral.identifier.UUIDString ]];
         
         self.serviceCount = [peripheral.services count];
         for (CBService *p in peripheral.services){
@@ -209,28 +212,42 @@
         }
     }
     else {
-        NSLog(@"some error @ DiscoverServices : [%@]",error);
+        [self logChanel:[NSString stringWithFormat:@"some error @ DiscoverServices : [%@]",error ]];
     }
 }
 
 -(void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error {
-     NSLog(@"didDiscoverCharacteristicsForService");
+    [self logChanel:@"didDiscoverCharacteristicsForService"];
     
-    CBService *s = [peripheral.services objectAtIndex:(peripheral.services.count - 1)];
-    NSLog(@"=========== Service UUID %@ ===========\n",service.UUID);
+    [self logChanel:[NSString stringWithFormat:@"= Service UUID %@",service.UUID]];
+     
     if (!error) {
-        NSLog(@"=========== %ld Characteristics of service ",service.characteristics.count);
+        [self logChanel:[NSString stringWithFormat:@"== %ld Characteristics of service",service.characteristics.count]];
         [self.connectedService addObject:service];
         
         for(CBCharacteristic *c in service.characteristics){
-            NSLog(@"Characteristic UUID:%@ ",c.UUID);
-            if(service.UUID == NULL || s.UUID == NULL) return; // zach ios6 added
+            [self logChanel:[NSString stringWithFormat:@"=== Characteristic UUID:%@ ",c.UUID]];
+    
+            // setNotification
+//            [peripheral setNotifyValue:YES forCharacteristic:c];
             
-            //Register notification
+            // Read
+//            [peripheral readValueForCharacteristic:c];
+            
+            // Write
+//            NSData *data = [NSData dataWithBytes:[@"test" UTF8String] length:@"test".length];
+//            [peripheral writeValue:data forCharacteristic:c type:CBCharacteristicWriteWithResponse];
+            
 //            if ([service.UUID isEqual:[CBUUID UUIDWithString:@"180D"]]) {
 //                if ([c.UUID isEqual:[CBUUID UUIDWithString:@"2A37"]]) {
 //                    [peripheral setNotifyValue:YES forCharacteristic:c];
-//                    NSLog(@"registered notification 2A37");
+//                }
+//            }
+        
+//            if ([service.UUID isEqual:[CBUUID UUIDWithString:@"3BD91523-EC56-9CF3-B2DF-F2E239D01013"]]) {
+//                if ([c.UUID isEqual:[CBUUID UUIDWithString:@"3BD91524-EC56-9CF3-B2DF-F2E239D01013"]]) {
+//                    [peripheral setNotifyValue:YES forCharacteristic:c];
+//                    NSLog(@"set notify");
 //                }
 //            }
             
@@ -238,7 +255,7 @@
         }
     }
     else {
-        NSLog(@"Characteristic discorvery unsuccessfull !\n");
+        [self logChanel:@"Characteristic discorvery unsuccessfull !"];
         
     }
     
@@ -247,6 +264,13 @@
         [self performSegueWithIdentifier:@"ShowServices" sender:nil];
     }
     
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral didWriteValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error {
+    if (error) {
+        [self logChanel:[NSString stringWithFormat:@"peripheral[%@] , characteristic[%@]",peripheral.identifier.UUIDString , characteristic.UUID]];
+        [self logChanel:[NSString stringWithFormat:@"Error:%@",error.description]];
+    }
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error {
@@ -284,8 +308,11 @@
         if (  characteristic.properties & (CBCharacteristicPropertyIndicateEncryptionRequired) )
             msg = [msg stringByAppendingString:@"IndicateEncryptionRequired "];
         
-        NSLog(@"UUID[%@](%@) : %@ ",characteristic.UUID ,msg, characteristic.value);
+        [self logChanel:[NSString stringWithFormat:@"UUID[%@](%@) : %@ ",characteristic.UUID ,msg, characteristic.value]];
     
+    }
+    else {
+        [self logChanel:[NSString stringWithFormat:@"Error changing notification state: %@", [error localizedDescription]]];
     }
 }
 
@@ -311,23 +338,27 @@
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    
-    if (self.connectedPeripheral == [self.deviceList objectAtIndex:indexPath.row]) {
-        [self performSegueWithIdentifier:@"ShowServices" sender:nil];
-    }
-    else {
-        self.deviceIndex = indexPath.row;
-    }
+    [self.CM stopScan];
+    self.deviceIndex = indexPath.row;
 }
 
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
     //  pass recipe data to DetailView
+    
     if ([segue.identifier isEqualToString:@"ShowServices"]) {
         ServiceViewController *destViewController = segue.destinationViewController;
         destViewController.periperal = self.connectedPeripheral;
         destViewController.service = self.connectedService;
     }
+    else if ([segue.identifier isEqualToString:@"ShowLog"]) {
+        LogVC *destViewController = segue.destinationViewController;
+        destViewController.log = self.log;
+    }
 }
 
+- (void)logChanel:(NSString*)msg {
+    NSLog(@"%@",msg);
+    [self.log addObject:msg];
+}
 @end
