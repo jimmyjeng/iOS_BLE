@@ -146,6 +146,16 @@
                                     <action selector="pressStartScan:" destination="BYZ-38-t0r" eventType="touchUpInside" id="UYg-nU-CyZ"/>
                                 </connections>
                             </button>
+                            <segmentedControl opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="aBq-uw-xQG">
+                                <rect key="frame" x="5" y="206" width="123" height="29"/>
+                                <segments>
+                                    <segment title="Info"/>
+                                    <segment title="Wifi"/>
+                                </segments>
+                                <connections>
+                                    <action selector="segmentedValueChange:" destination="BYZ-38-t0r" eventType="valueChanged" id="kyf-Oe-GXr"/>
+                                </connections>
+                            </segmentedControl>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
@@ -176,11 +186,12 @@
                         <outlet property="labelState" destination="SOi-cF-FT4" id="p9M-1K-lh7"/>
                         <outlet property="tableView" destination="Crq-7w-r00" id="lIN-Uq-cdM"/>
                         <segue destination="yfO-AB-m9l" kind="show" identifier="ShowServices" id="JOR-NV-YRD"/>
+                        <segue destination="EoF-5D-e3W" kind="show" identifier="ShowWifi" id="Yz2-u5-yd9"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="831.5" y="83.5"/>
+            <point key="canvasLocation" x="831.5" y="111.5"/>
         </scene>
         <!--LogVC-->
         <scene sceneID="wDT-ZA-EaG">
@@ -239,6 +250,52 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="8jR-he-TAf" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="831.5" y="906.5"/>
+        </scene>
+        <!--Wifi List View Controller-->
+        <scene sceneID="M6p-R2-EIZ">
+            <objects>
+                <viewController id="EoF-5D-e3W" customClass="WifiListViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="JQo-M0-oZo"/>
+                        <viewControllerLayoutGuide type="bottom" id="Kqc-ak-Lyu"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="G3t-14-MVJ">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="22" sectionFooterHeight="22" translatesAutoresizingMaskIntoConstraints="NO" id="HUo-kE-BXq">
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                <prototypes>
+                                    <tableViewCell contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" reuseIdentifier="wifiCell" id="BjE-RA-6Ft">
+                                        <rect key="frame" x="0.0" y="0.0" width="375" height="44"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" tableViewCell="BjE-RA-6Ft" id="LXL-cY-3qv">
+                                            <autoresizingMask key="autoresizingMask"/>
+                                        </tableViewCellContentView>
+                                    </tableViewCell>
+                                </prototypes>
+                                <connections>
+                                    <outlet property="dataSource" destination="EoF-5D-e3W" id="Zfd-zg-Bak"/>
+                                    <outlet property="delegate" destination="EoF-5D-e3W" id="sij-sw-1NB"/>
+                                </connections>
+                            </tableView>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="HUo-kE-BXq" firstAttribute="leading" secondItem="G3t-14-MVJ" secondAttribute="leading" id="5dR-c1-yeu"/>
+                            <constraint firstItem="HUo-kE-BXq" firstAttribute="top" secondItem="G3t-14-MVJ" secondAttribute="top" id="629-Qo-yRa"/>
+                            <constraint firstAttribute="trailing" secondItem="HUo-kE-BXq" secondAttribute="trailing" id="Wgo-EC-Ysc"/>
+                            <constraint firstAttribute="bottom" secondItem="HUo-kE-BXq" secondAttribute="bottom" id="hSZ-jC-vaB"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="tableView" destination="HUo-kE-BXq" id="mLA-xt-iW0"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="VLk-TZ-elH" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="1383.5" y="559.5"/>
         </scene>
         <!--Service View Controller-->
         <scene sceneID="CxN-M9-2Gh">
@@ -337,7 +394,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="hSF-zO-KQs" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1289.5" y="77.5"/>
+            <point key="canvasLocation" x="1383.5" y="-212.5"/>
         </scene>
         <!--Characteristics View Controller-->
         <scene sceneID="spf-fy-MOL">
@@ -431,7 +488,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="E9S-ef-Dcj" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1758.5" y="77.5"/>
+            <point key="canvasLocation" x="1932.5" y="-212.5"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="HUA-5H-OYq">

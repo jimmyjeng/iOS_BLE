@@ -10,11 +10,13 @@
 #import "ServiceViewController.h"
 #import "DeviceCell.h"
 #import "LogVC.h"
+#import "WifiListViewController.h"
 
 @interface ViewController ()
-@property (nonatomic,strong) CBCentralManager *CM;
-@property (nonatomic,strong) CBPeripheral *connectedPeripheral;
+@property CBCentralManager *CM;
+@property CBPeripheral *connectedPeripheral;
 @property NSMutableArray *connectedService;
+@property CBCharacteristic *CharWifiResponse;
 @property NSInteger serviceCount;
 @property NSMutableArray *deviceList;
 @property NSMutableArray *rssiList;
@@ -22,6 +24,8 @@
 @property BOOL isOK;
 @property NSTimer *connectTimer;
 @property NSMutableArray *log;
+@property enum BLEMode mode;
+@property NSMutableArray *wifiList;
 @end
 
 @implementation ViewController
@@ -38,6 +42,8 @@
     self.serviceCount = -1;
     self.isOK = NO;
     self.log = [[NSMutableArray alloc]init];
+    self.mode = BLE_INFO;
+    self.wifiList = [[NSMutableArray alloc]init];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -235,21 +241,24 @@
             // Write
 //            NSData *data = [NSData dataWithBytes:[@"test" UTF8String] length:@"test".length];
 //            [peripheral writeValue:data forCharacteristic:c type:CBCharacteristicWriteWithResponse];
-            
-//            if ([service.UUID isEqual:[CBUUID UUIDWithString:@"180D"]]) {
-//                if ([c.UUID isEqual:[CBUUID UUIDWithString:@"2A37"]]) {
-//                    [peripheral setNotifyValue:YES forCharacteristic:c];
-//                }
-//            }
         
-//            if ([service.UUID isEqual:[CBUUID UUIDWithString:@"3BD91523-EC56-9CF3-B2DF-F2E239D01013"]]) {
-//                if ([c.UUID isEqual:[CBUUID UUIDWithString:@"3BD91524-EC56-9CF3-B2DF-F2E239D01013"]]) {
+            if ([service.UUID isEqual:[CBUUID UUIDWithString:@"B001"]]) {
+                // wifi list
+                if ([c.UUID isEqual:[CBUUID UUIDWithString:@"C001"]]) {
 //                    [peripheral setNotifyValue:YES forCharacteristic:c];
-//                    NSLog(@"set notify");
-//                }
-//            }
+                    [peripheral readValueForCharacteristic:c];
+                }
+                // data
+                else if ([c.UUID isEqual:[CBUUID UUIDWithString:@"C002"]]) {
+                    self.CharWifiResponse = c;
+                }
+                // response
+                else if ([c.UUID isEqual:[CBUUID UUIDWithString:@"C003"]]) {
+//                    [peripheral readValueForCharacteristic:c];
+                    [peripheral setNotifyValue:YES forCharacteristic:c];
+                }
+            }
             
-            [peripheral readValueForCharacteristic:c];
         }
     }
     else {
@@ -257,9 +266,15 @@
         
     }
     
+    // load done
     self.serviceCount--;
     if (self.serviceCount == 0) {
-        [self performSegueWithIdentifier:@"ShowServices" sender:nil];
+        if (self.mode == BLE_INFO) {
+            [self performSegueWithIdentifier:@"ShowServices" sender:nil];
+        }
+//        else if(self.mode == BLE_WIFI) {
+//            [self performSegueWithIdentifier:@"ShowWifi" sender:nil];
+//        }
     }
     
 }
@@ -275,7 +290,18 @@
 //    NSLog(@"didUpdateValueForCharacteristic");
     
     if (!error) {
-        NSLog(@"Characteristic[%@] : %@",characteristic.UUID, characteristic.value);
+        NSLog(@"Update Characteristic[%@] : %@",characteristic.UUID, characteristic.value);
+        // wifi list
+        if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@"C001"]]) {
+            [self converterWifiList:characteristic.value];
+            if (self.mode == BLE_WIFI) {
+               [self performSegueWithIdentifier:@"ShowWifi" sender:nil];
+            }
+           
+        }
+        else if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@"C003"]]) {
+            [self converterDomain:characteristic.value];
+        }
     }
     else {
         [self logChanel:[NSString stringWithFormat:@"Error changing notification state: %@", [error localizedDescription]]];
@@ -308,7 +334,7 @@
     self.deviceIndex = indexPath.row;
 }
 
-
+#pragma mark other
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
     //  pass recipe data to DetailView
     
@@ -320,6 +346,11 @@
     else if ([segue.identifier isEqualToString:@"ShowLog"]) {
         LogVC *destViewController = segue.destinationViewController;
         destViewController.log = self.log;
+    }
+    else if ([segue.identifier isEqualToString:@"ShowWifi"]) {
+        WifiListViewController *destViewController = segue.destinationViewController;
+        destViewController.wifiList = self.wifiList;
+        destViewController.mainView = self;
     }
 }
 
@@ -358,8 +389,94 @@
     [self logChanel:[NSString stringWithFormat:@"=== Characteristic UUID(%@): [%@] ",msg,characteristic.UUID]];
 }
 
+
+- (void)converterWifiList:(NSData *)data {
+    NSMutableString *sbuf = [[NSMutableString alloc]init];
+    const unsigned char *buf = data.bytes;
+
+    NSInteger i;
+    for (i=0; i<data.length; ++i) {
+        [sbuf appendFormat:@"%02x",buf[i]];
+    }
+
+    NSArray *deviceList = [sbuf componentsSeparatedByString:@"7f"];
+    for ( NSString *hexName in deviceList ) {
+        if ([hexName length] > 0) {
+            int i = 0;
+            NSMutableString *deviceName = [[NSMutableString alloc]init];
+            while ( i < [hexName length]) {
+                NSString * hexChar = [hexName substringWithRange: NSMakeRange(i, 2)];
+                int value = 0;
+                sscanf([hexChar cStringUsingEncoding:NSASCIIStringEncoding], "%x", &value);
+                [deviceName appendFormat:@"%c", (char)value];
+                i+=2;
+            }
+            // the deviceName two is mode
+            if ( [deviceName length] > 2) {
+                [self logChanel:[NSString stringWithFormat:@"Wifi:%@",[deviceName substringFromIndex:2]]];
+                [self.wifiList addObject:deviceName];
+            }
+        }
+    }
+    
+}
+
+- (void)converterDomain:(NSData *)data {
+    NSMutableString *sbuf = [[NSMutableString alloc]init];
+    const unsigned char *buf = data.bytes;
+    
+    NSInteger i;
+    for (i=0; i<data.length; ++i) {
+        [sbuf appendFormat:@"%02x",buf[i]];
+    }
+    
+    NSArray *wifiInfo = [sbuf componentsSeparatedByString:@"7f"];
+    
+    i = 0;
+    NSMutableString *ip = [[NSMutableString alloc]init];
+    while ( i < [[wifiInfo objectAtIndex:0] length]) {
+        NSString * hexChar = [[wifiInfo objectAtIndex:0] substringWithRange: NSMakeRange(i, 2)];
+        int value = 0;
+        sscanf([hexChar cStringUsingEncoding:NSASCIIStringEncoding], "%x", &value);
+        [ip appendFormat:@"%c", (char)value];
+        i+=2;
+    }
+   
+    NSMutableString *domain = [[NSMutableString alloc]init];
+    i = 0;
+    while ( i < [[wifiInfo objectAtIndex:1] length]) {
+        NSString * hexChar = [[wifiInfo objectAtIndex:1] substringWithRange: NSMakeRange(i, 2)];
+        int value = 0;
+        sscanf([hexChar cStringUsingEncoding:NSASCIIStringEncoding], "%x", &value);
+        [domain appendFormat:@"%c", (char)value];
+        i+=2;
+    }
+    
+    [self logChanel:[NSString stringWithFormat:@"ip:%@",ip]];
+    [self logChanel:[NSString stringWithFormat:@"domain:%@",domain]];
+    
+}
 - (void)logChanel:(NSString*)msg {
     NSLog(@"%@",msg);
     [self.log addObject:msg];
+}
+
+- (IBAction)segmentedValueChange:(id)sender {
+    switch ([sender selectedSegmentIndex]) {
+        case 0:
+            self.mode = BLE_INFO;
+            break;
+        case 1:
+            self.mode = BLE_WIFI;
+            break;
+        default:
+            break;
+    }
+}
+
+- (void)setWifiPassword:(NSMutableData *)data {
+    [self logChanel:[NSString stringWithFormat:@"setPassword :%@",data]];
+//    NSData *temp = [NSData dataWithBytes:[@"test" UTF8String] length:@"test".length];
+    [self.connectedPeripheral writeValue:data forCharacteristic:self.CharWifiResponse type:CBCharacteristicWriteWithResponse];
 }
 @end
