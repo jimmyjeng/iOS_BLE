@@ -38,7 +38,6 @@
     self.serviceCount = -1;
     self.isOK = NO;
     self.log = [[NSMutableArray alloc]init];
-    
 }
 
 - (void)didReceiveMemoryWarning {
@@ -133,27 +132,32 @@
     switch (cManager.state) {
         case CBCentralManagerStateUnknown:
             self.labelState.text = @"Unknown";
+            [self logChanel:@"Device Unknown"];
             break;
         case CBCentralManagerStateUnsupported:
             self.labelState.text = @"Unsupported";
+            [self logChanel:@"Device Unsupported"];
             break;
         case CBCentralManagerStateUnauthorized:
             self.labelState.text = @"Unauthorized";
+            [self logChanel:@"Device Unauthorized"];
             break;
         case CBCentralManagerStateResetting:
             self.labelState.text = @"Resetting";
+            [self logChanel:@"Device Resetting"];
             break;
         case CBCentralManagerStatePoweredOff:
             self.labelState.text = @"PoweredOff";
-            [self logChanel:@"Power Off"];
+            [self logChanel:@"Device Power Off"];
             break;
         case CBCentralManagerStatePoweredOn:
             self.labelState.text = @"PoweredOn";
-            [self logChanel:@"Power On"];
+            [self logChanel:@"Device Power On"];
             self.isOK = YES;
             break;
         default:
-            self.labelState.text = @"none";
+            self.labelState.text = @"unexpect";
+            [self logChanel:@"Device unexpect"];
             break;
     }
 
@@ -162,12 +166,6 @@
 -(void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI
 {
     if (peripheral.name) {
-        
-//        NSLog(@"@@ didDiscoverPeripheral");
-//        NSLog(@"Peripheral Info:");
-//        NSLog(@"peripheral : %@",peripheral);
-//        NSLog(@"RSSI: %@",RSSI);
-//        NSLog(@"adverisement:%@",advertisementData);
         
         if ( ![self.deviceList containsObject:peripheral] ) {
             [self.deviceList addObject:peripheral];
@@ -226,8 +224,8 @@
         [self.connectedService addObject:service];
         
         for(CBCharacteristic *c in service.characteristics){
-            [self logChanel:[NSString stringWithFormat:@"=== Characteristic UUID:%@ ",c.UUID]];
-    
+            [self detectCharacteristic:c];
+            
             // setNotification
 //            [peripheral setNotifyValue:YES forCharacteristic:c];
             
@@ -277,39 +275,7 @@
 //    NSLog(@"didUpdateValueForCharacteristic");
     
     if (!error) {
-        NSString *msg = @"";
-        if (  characteristic.properties & (CBCharacteristicPropertyBroadcast) )
-            msg = [msg stringByAppendingString:@"Broadcast "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyRead) )
-            msg = [msg stringByAppendingString:@"Read "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyWriteWithoutResponse) )
-            msg = [msg stringByAppendingString:@"WriteWithoutResponse "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyWrite) )
-            msg = [msg stringByAppendingString:@"Write "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyNotify) )
-            msg = [msg stringByAppendingString:@"Notify "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyIndicate) )
-            msg = [msg stringByAppendingString:@"Indicate "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyAuthenticatedSignedWrites) )
-            msg = [msg stringByAppendingString:@"AuthenticatedSignedWrites "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyExtendedProperties) )
-            msg = [msg stringByAppendingString:@"ExtendedProperties "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyNotifyEncryptionRequired) )
-            msg = [msg stringByAppendingString:@"NotifyEncryptionRequired "];
-        
-        if (  characteristic.properties & (CBCharacteristicPropertyIndicateEncryptionRequired) )
-            msg = [msg stringByAppendingString:@"IndicateEncryptionRequired "];
-        
-        [self logChanel:[NSString stringWithFormat:@"UUID[%@](%@) : %@ ",characteristic.UUID ,msg, characteristic.value]];
-    
+        NSLog(@"Characteristic[%@] : %@",characteristic.UUID, characteristic.value);
     }
     else {
         [self logChanel:[NSString stringWithFormat:@"Error changing notification state: %@", [error localizedDescription]]];
@@ -355,6 +321,41 @@
         LogVC *destViewController = segue.destinationViewController;
         destViewController.log = self.log;
     }
+}
+
+- (void)detectCharacteristic:(CBCharacteristic *)characteristic {
+    NSString *msg = @"";
+    if (  characteristic.properties & (CBCharacteristicPropertyBroadcast) )
+        msg = [msg stringByAppendingString:@"Broadcast "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyRead) )
+        msg = [msg stringByAppendingString:@"Read "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyWriteWithoutResponse) )
+        msg = [msg stringByAppendingString:@"WriteWithoutResponse "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyWrite) )
+        msg = [msg stringByAppendingString:@"Write "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyNotify) )
+        msg = [msg stringByAppendingString:@"Notify "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyIndicate) )
+        msg = [msg stringByAppendingString:@"Indicate "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyAuthenticatedSignedWrites) )
+        msg = [msg stringByAppendingString:@"AuthenticatedSignedWrites "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyExtendedProperties) )
+        msg = [msg stringByAppendingString:@"ExtendedProperties "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyNotifyEncryptionRequired) )
+        msg = [msg stringByAppendingString:@"NotifyEncryptionRequired "];
+    
+    if (  characteristic.properties & (CBCharacteristicPropertyIndicateEncryptionRequired) )
+        msg = [msg stringByAppendingString:@"IndicateEncryptionRequired "];
+    
+    [self logChanel:[NSString stringWithFormat:@"=== Characteristic UUID(%@): [%@] ",msg,characteristic.UUID]];
 }
 
 - (void)logChanel:(NSString*)msg {

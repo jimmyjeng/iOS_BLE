@@ -27,8 +27,8 @@
         logLabel.text = msg;
         logLabel.numberOfLines = 0;
         logLabel.lineBreakMode = NSLineBreakByWordWrapping;
-        CGSize size = [logLabel sizeThatFits:CGSizeMake(SCREEN_WIDTH, MAXFLOAT)];
-        logLabel.frame = CGRectMake(10, y, SCREEN_WIDTH, size.height);
+        CGSize size = [logLabel sizeThatFits:CGSizeMake(SCREEN_WIDTH - 20, MAXFLOAT)];
+        logLabel.frame = CGRectMake(10, y, SCREEN_WIDTH - 20, size.height);
         
         [self.contentView addSubview:logLabel];
         y += size.height;
